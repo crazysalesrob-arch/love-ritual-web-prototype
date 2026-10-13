@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kiwiburger Ticker · Love Ritual</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background-color: #E1AD01;
+    overflow-x: hidden;
+    overflow-y: auto;
+    width: 100vw;
+  }
+  .kiwiana-marquee-container {
+    width: 100%;
+    background-color: #E1AD01;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .marquee-row {
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+    padding: 6px 0;
+    pointer-events: none;
+  }
+  .marquee-track {
+    display: inline-flex;
+    gap: 32px;
+    will-change: transform;
+  }
+  .marquee-track img {
+    width: 65px;
+    height: 65px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .border-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  .border-overlay img {
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+  }
+  #noise {
+    position: fixed; inset: 0; pointer-events: none; z-index: 9998;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat; background-size: 256px 256px;
+    mix-blend-mode: multiply;
+  }
+  #scanlines {
+    position: fixed; inset: 0; pointer-events: none; z-index: 9997;
+    background: repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px);
+  }
+</style>
+</head>
+<body>
+
+<div class="kiwiana-marquee-container" id="marqueeContainer"></div>
+<div id="noise"></div><div id="scanlines"></div>
+<div class="border-overlay"><img src="assets/kowhaiwhai5.png" alt="" /></div>
+
+<script>
+const kiwiana = [
+  'assets/4square.png', 'assets/char.png', 'assets/deep throat.png',
+  'assets/footy.png', 'assets/kiwi.png', 'assets/kiwif.png',
+  'assets/LR beer.png', 'assets/bumble.png', 'assets/colonizer.png',
+  'assets/fishnchips.png', 'assets/maori flag.png', 'assets/dollarbag.png',
+  'assets/warrior.png', 'assets/beehive.png', 'assets/kete2.png',
+  'assets/pav.png', 'assets/powerlines.png', 'assets/sheepdag.png',
+  'assets/spottingknives.png', 'assets/treatymusket.png', 'assets/ashtray.png',
+  'assets/kereru.png', 'assets/shed.png',
+  'assets/gummies.png', 'assets/punga.png', 'assets/thingee.png',
+  'assets/chillybin trimmed.png', 'assets/fence upscale.png',
+  'assets/meatpieupscale.png', 'assets/pink jandle upscale.png',
+  'assets/sauce upscale.png', 'assets/swandri trim.png',
+  'assets/weta trim.png', 'assets/kina 4x scale.png',
+];
+const logos = [
+  'assets/logo1.png', 'assets/logo2.png', 'assets/logo3.png',
+  'assets/logo4.png', 'assets/logo5.png', 'assets/LR-beer.png',
+  'assets/logo1recut.png', 'assets/love ritual logo 6.png'
+];
+
+const allAssets = [];
+const ratio = kiwiana.length / logos.length;
+let logoIdx = 0;
+for (let i = 0; i < kiwiana.length; i++) {
+  allAssets.push(kiwiana[i]);
+  const targetPos = Math.round((logoIdx + 1) * ratio);
+  if (logoIdx < logos.length && i + 1 >= targetPos) {
+    allAssets.push(logos[logoIdx]);
+    logoIdx++;
+  }
+}
+
+const container = document.getElementById('marqueeContainer');
+let rows = [];
+let animId = null;
+
+function buildPage() {
+  container.innerHTML = '';
+  rows = [];
+  if (animId) { cancelAnimationFrame(animId); animId = null; }
+  
+  const rowCount = Math.max(10, Math.floor(window.innerHeight / 80) * 2);
+  
+  for (let r = 0; r < rowCount; r++) {
+    const row = document.createElement('div');
+    row.className = 'marquee-row';
+    const track = document.createElement('div');
+    track.className = 'marquee-track';
+    
+    const addSet = () => {
+      allAssets.forEach(src => {
+        const img = document.createElement('img');
+        img.src = src; img.alt = '';
+        img.draggable = false;
+        track.appendChild(img);
+      });
+    };
+    addSet(); addSet();
+    row.appendChild(track);
+    container.appendChild(row);
+    const direction = r % 2 === 0 ? -1 : 1;
+    const offset = (r / rowCount) * 300;
+    rows.push({ el: track, pos: offset * direction, dir: direction, speed: 0.4 + Math.random() * 0.3 });
+  }
+  
+  animId = requestAnimationFrame(tick);
+}
+
+let lastTick = 0;
+function tick(time) {
+  if (!lastTick) lastTick = time;
+  const dt = Math.min(time - lastTick, 50); // cap delta
+  lastTick = time;
+  
+  for (const row of rows) {
+    const cw = row.el.scrollWidth / 2;
+    if (cw <= 0) continue;
+    
+    row.pos += row.dir * row.speed * (dt / 16);
+    
+    if (row.dir === -1 && row.pos < -cw) row.pos += cw;
+    if (row.dir === 1 && row.pos > 0) row.pos -= cw;
+    
+    row.el.style.transform = `translateX(${row.pos}px)`;
+  }
+  
+  animId = requestAnimationFrame(tick);
+}
+
+window.addEventListener('DOMContentLoaded', buildPage);
+window.addEventListener('resize', () => { if (animId) cancelAnimationFrame(animId); buildPage(); });
+</script>
+</body>
+</html>

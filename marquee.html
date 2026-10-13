@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kiwiburger Ticker · Love Ritual</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background-color: #E1AD01;
+    overflow-x: hidden;
+    overflow-y: auto;
+    width: 100vw;
+  }
+  .kiwiana-marquee-container {
+    width: 100%;
+    background-color: #E1AD01;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .marquee-row {
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+    padding: 6px 0;
+    pointer-events: none;
+  }
+  .marquee-track {
+    display: inline-flex;
+    gap: 40px;
+    will-change: transform;
+  }
+  .marquee-track img {
+    width: 70px;
+    height: 70px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .border-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  .border-overlay img {
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+  }
+</style>
+</head>
+<body>
+
+<div class="kiwiana-marquee-container" id="marqueeContainer"></div>
+
+<div class="border-overlay"><img src="assets/kowhaiwhai5.png" alt="" /></div>
+
+<script>
+const kiwiana = [
+  'assets/4square.png', 'assets/chair.png', 
+  'assets/footy.png', 'assets/kiwi.png', 'assets/kiwif.png',
+  'assets/LR beer.png', 'assets/bumble.png', 'assets/colonizer.png',
+  'assets/fishnchips.png', 'assets/maori flag.png', 'assets/dollarbag-v2.png',
+  'assets/warrior.png', 'assets/beehive.png', 'assets/kete2.png',
+  'assets/pav.png', 'assets/powerlines.png', 'assets/sheepdag.png',
+  'assets/spottingknives.png', 'assets/treatymusket.png', 'assets/ashtray.png',
+  'assets/kereru.png', 'assets/shed.png',
+  'assets/gummies.png', 'assets/punga.png', 'assets/thingee.png',
+  'assets/chillybin trimmed.png', 'assets/biggest mouth drink.png',
+  'assets/fence upscale.png',
+  'assets/meatpieupscale.png',
+  'assets/pink jandle upscale.png',
+  'assets/sauce upscale.png',
+  'assets/swandri trim.png',
+  'assets/weta trim.png',
+  'assets/kina 4x scale.png',
+  'assets/zip zag 2.png',
+  'assets/vape.png',
+  'assets/nzflag.png',
+];
+
+const logos = [
+  'assets/logo1.png', 'assets/logo2.png', 'assets/logo3.png',
+  'assets/logo4.png', 'assets/logo5.png', 'assets/LR-beer.png',
+  'assets/logo1recut.png',
+  'assets/love ritual logo 6.png'
+];
+
+const allAssets = [];
+const ratio = kiwiana.length / logos.length;
+let logoIdx = 0;
+for (let i = 0; i < kiwiana.length; i++) {
+  allAssets.push(kiwiana[i]);
+  const targetPos = Math.round((logoIdx + 1) * ratio);
+  if (logoIdx < logos.length && i + 1 >= targetPos) {
+    allAssets.push(logos[logoIdx]);
+    logoIdx++;
+  }
+}
+
+const container = document.getElementById('marqueeContainer');
+const ROW_HEIGHT = 100;
+let rows = [];
+let tickerRunning = false;
+
+function buildPage() {
+  container.innerHTML = '';
+  rows = [];
+  tickerRunning = false;
+  const rowCount = Math.max(10, Math.floor(window.innerHeight / ROW_HEIGHT) * 2);
+
+  for (let r = 0; r < rowCount; r++) {
+    const row = document.createElement('div');
+    row.className = 'marquee-row';
+    const track = document.createElement('div');
+    track.className = 'marquee-track';
+    const addSet = () => {
+      allAssets.forEach(src => {
+        const img = document.createElement('img');
+        img.src = src + '?v=9'; img.alt = '';
+        track.appendChild(img);
+      });
+    };
+    addSet(); addSet();
+    row.appendChild(track);
+    container.appendChild(row);
+    const direction = r % 2 === 0 ? -1 : 1;
+    rows.push({ el: track, pos: 0, dir: direction });
+  }
+
+  setTimeout(() => {
+    if (!tickerRunning && rows.length > 0) {
+      for (let r = 0; r < rows.length; r++) {
+        const cw = rows[r].el.scrollWidth / 2;
+        if (cw <= 0) continue;
+        const offset = (r / rows.length) * cw;
+        rows[r].pos = -offset;
+        rows[r].el.style.transform = `translateX(${rows[r].pos}px)`;
+      }
+      tickerRunning = true;
+      setInterval(tick, 1000);
+    }
+  }, 500);
+}
+
+function tick() {
+  for (const row of rows) {
+    const cw = row.el.scrollWidth / 2;
+    const itemWidth = cw / allAssets.length;
+    row.pos += row.dir * itemWidth;
+    if (row.dir === -1 && row.pos < -cw) row.pos += cw;
+    if (row.dir === 1 && row.pos > 0) row.pos -= cw;
+    row.el.style.transform = `translateX(${row.pos}px)`;
+  }
+}
+
+window.addEventListener('DOMContentLoaded', buildPage);
+window.addEventListener('resize', buildPage);
+</script>
+</body>
+</html>

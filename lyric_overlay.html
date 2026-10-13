@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kiwiana Lyric Overlay</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+  body { display: flex; align-items: center; justify-content: center; }
+  #frame {
+    width: 100vw; height: 56.25vw;
+    max-height: 100vh; max-width: 177.78vh;
+    position: relative; overflow: hidden;
+  }
+  canvas { display: block; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <canvas id="c"></canvas>
+</div>
+<script>
+// ─── LYRICS ───
+const LYRICS = [
+  "KIWIS LOVE HOT DOGS, RUGBY BALLS, WAGGING SCHOOL,",
+  "STEAK AND CHEESE, ALIEN CONSPIRACIES, WINZ PAYMENTS, LEG CHAFFING,",
+  "COW PATS, FANCY HATS, THINGI'S EYE, TREATY RIGHTS, BUZZY BEES, HOMIE G'S,",
+  "GUMBOOTS, STOLEN SHOES, KAKAPO, THANK YOU BRO,",
+  "YEAH NAH CHUR CUZ, WE SOME KIWI MOTHERF***ERS...",
+  "",  // ad read gap
+  "ROAD TRIPS, FISH AND CHIPS, DOOM SCROLLING, HAND HOLDING,",
+  "SWANNDRIS, BONFIRES, CHILLY BINS, CHICKEN WINGS, JANDALS, HANDLES,",
+  "SHEEP DAGS, DOLLAR BAGS, UP THE WAHS, STOLE MY CAR,",
+  "TINNIE HOUSE, FANCY BLOUSE, ROAD KILL, ROAD CONE,",
+  "MANU'S AND PARU THINGS, NEK MINUTE STEAK DINNERS,",
+  "RAM RAIDS, SUNNY DAYS,",
+  "CHEEKY DURRY, MARIJUANA, MĀORI HAKA,",
+  "WE SOME KIWI MOTHERF***ERS!"
+];
+
+const COLORS = ['#9B59B6', '#F1C40F', '#2ECC71', '#000000', '#3498DB'];
+// Purple, Yellow, Green, Black, Blue
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  const rect = document.getElementById('frame').getBoundingClientRect();
+  W = canvas.width = rect.width;
+  H = canvas.height = rect.height;
+}
+window.addEventListener('resize', resize);
+
+// Load kiwifruit
+const kiwifImg = new Image();
+kiwifImg.src = 'assets/kiwif.png' + '?v=' + Date.now();
+
+// ─── RENDER A LYRIC LINE ───
+function renderLyricLine(line, wordProgress) {
+  // line: the text to display
+  // wordProgress: 0 to 1 - which word the kiwifruit is over
+  
+  ctx.clearRect(0, 0, W, H);
+  
+  if (!line) return; // skip empty lines
+  
+  const words = line.split(' ');
+  const totalWords = words.length;
+  const currentWord = Math.floor(wordProgress * totalWords);
+  const wordFrac = (wordProgress * totalWords) - currentWord; // 0-1 within current word
+  
+  // Calculate font size based on line length
+  const maxWidth = W * 0.9;
+  let fontSize = Math.min(80, Math.floor(maxWidth / line.length * 1.6));
+  fontSize = Math.max(30, fontSize);
+  
+  // Measure and position words
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  
+  // First pass: measure each word width
+  const wordWidths = words.map(w => {
+    ctx.font = `bold ${fontSize}px Arial Black, Impact, Arial, sans-serif`;
+    return ctx.measureText(w + ' ').width;
+  });
+  const totalWidth = wordWidths.reduce((a, b) => a + b, 0);
+  
+  let startX = (W - totalWidth) / 2;
+  const baseY = H / 2;
+  
+  // Draw each word
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    ctx.font = `bold ${fontSize}px Arial Black, Impact, Arial, sans-serif`;
+    
+    // Alternating colors per letter
+    const letIdx = i;
+    
+    // Draw each letter with alternating colors and bouncy offset
+    let letterX = startX;
+    const wordWidth = ctx.measureText(word).width;
+    const spaceWidth = ctx.measureText(' ').width;
+    
+    for (let j = 0; j < word.length; j++) {
+      const letter = word[j];
+      const color = COLORS[(letIdx + j) % COLORS.length];
+      const letterWidth = ctx.measureText(letter).width;
+      
+      // Bouncy y-offset (sinusoidal)
+      const bounceY = Math.sin(j * 0.8 + i * 1.2) * (fontSize * 0.08);
+      
+      // Slight rotation for jagged feel
+      const rotation = Math.sin(j * 0.5 + i * 0.7) * 0.06;
+      
+      ctx.save();
+      ctx.translate(letterX + letterWidth/2, baseY + bounceY);
+      ctx.rotate(rotation);
+      ctx.fillStyle = color;
+      ctx.fillText(letter, 0, 0);
+      ctx.restore();
+      
+      letterX += letterWidth;
+    }
+    
+    // Draw kiwifruit if this is the current word
+    if (i === currentWord) {
+      const kiwiSize = fontSize * 1.2;
+      const kiwiX = startX + wordWidth * wordFrac;
+      const kiwiY = baseY - fontSize * 0.8 - Math.abs(Math.sin(Date.now() * 0.005)) * (fontSize * 0.3);
+      
+      if (kiwifImg.complete && kiwifImg.naturalWidth > 0) {
+        const aspect = kiwifImg.width / kiwifImg.height;
+        const kw = aspect > 1 ? kiwiSize : kiwiSize * aspect;
+        const kh = aspect > 1 ? kiwiSize / aspect : kiwiSize;
+        ctx.drawImage(kiwifImg, kiwiX - kw/2, kiwiY - kh/2, kw, kh);
+      }
+    }
+    
+    startX += wordWidth + spaceWidth;
+  }
+}
+
+// ─── EXPORT FUNCTION ───
+window.renderFrame = function(lineIdx, wordProgress) {
+  renderLyricLine(LYRICS[lineIdx], wordProgress);
+  return canvas.toDataURL('image/png');
+};
+
+// Preview mode - cycle through lines
+let currentLine = 0;
+let frameTime = 0;
+
+function preview(time) {
+  if (!frameTime) frameTime = time;
+  const elapsed = (time - frameTime) / 1000;
+  
+  // Auto-advance every 3 seconds
+  if (elapsed > 3) {
+    currentLine = (currentLine + 1) % LYRICS.length;
+    frameTime = time;
+  }
+  
+  const progress = Math.min(1, elapsed / 3);
+  renderLyricLine(LYRICS[currentLine], progress);
+  requestAnimationFrame(preview);
+}
+
+resize();
+// Uncomment for preview in browser:
+// requestAnimationFrame(preview);
+</script>
+</body>
+</html>

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Love Ritual · Kiwiana Tee Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #2a2a2a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: system-ui, sans-serif;
+  }
+  .stage {
+    position: relative;
+    width: 560px;
+    max-width: 92vw;
+    filter: drop-shadow(0 20px 60px rgba(0,0,0,0.6));
+  }
+  .shirt-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    border-radius: 14px;
+    background: #1a1a1a;
+  }
+  /* === SHIRT BODY (CSS shape — more natural) === */
+  .shirt-body {
+    position: absolute;
+    /* roughly centred within the wrap */
+    top: 2%;
+    left: 8%;
+    width: 84%;
+    height: 96%;
+    /* shirt silhouette via clip-path */
+    clip-path: polygon(
+      /* collar L */ 30% 0%, 35% 3%,
+      /* neck R */  65% 3%, 70% 0%,
+      /* shoulder R */ 76% 8%, 78% 10%,
+      /* arm R top */  88% 8%, 95% 12%,
+      /* arm R out */  100% 18%, 100% 40%,
+      /* arm R bottom */ 92% 42%, 88% 38%,
+      /* torso R */ 84% 42%, 84% 100%,
+      /* hem */ 16% 100%,
+      /* torso L */ 16% 42%, 12% 38%,
+      /* arm L bottom */ 8% 42%, 0% 40%,
+      /* arm L out */ 0% 18%, 5% 12%,
+      /* arm L top */ 12% 8%, 22% 10%,
+      /* shoulder L */ 24% 8%, 30% 0%
+    );
+    background: #222;
+    transition: background .2s;
+    position: relative;
+  }
+
+  /* === PRINT AREA === */
+  .print-area {
+    position: absolute;
+    top: 24%;
+    left: 18%;
+    width: 64%;
+    height: 46%;
+    overflow: hidden;
+    border-radius: 10px;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+  }
+  .print-inner {
+    width: 100%;
+    height: 100%;
+    background: #E1AD01;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    transition: background .2s;
+  }
+  .print-inner .row {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+  }
+  .print-inner .track {
+    display: inline-flex;
+    gap: 10px;
+    will-change: transform;
+    animation: scrollLeft var(--speed, 6s) linear infinite;
+  }
+  .print-inner .row:nth-child(even) .track {
+    animation-name: scrollRight;
+  }
+  .print-inner .track img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.12));
+  }
+
+  /* kowhaiwhai border overlay */
+  .print-border {
+    position: absolute; inset: 0; pointer-events: none;
+  }
+  .print-border svg { width: 100%; height: 100%; display: block; }
+  .print-border svg path.koru {
+    fill: none; stroke: #8B6914; stroke-width: 1.2; opacity: 0.35;
+  }
+
+  /* effects */
+  .print-noise {
+    position: absolute; inset: 0; pointer-events: none;
+    opacity: 0.05; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat; background-size: 128px 128px;
+  }
+  .print-scanlines {
+    position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent 0px, transparent 1px, rgba(0,0,0,0.05) 1px, rgba(0,0,0,0.05) 2px);
+    z-index: 1;
+  }
+
+  /* centre logo */
+  .print-logo {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 36%;
+    aspect-ratio: 1/1;
+    object-fit: contain;
+    z-index: 2;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.2));
+  }
+
+  /* === fabric texture === */
+  .fabric-overlay {
+    position: absolute; inset: 0; pointer-events: none; z-index: 5;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(255,255,255,0.012) 1px, rgba(255,255,255,0.012) 2px),
+      repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(255,255,255,0.008) 3px, rgba(255,255,255,0.008) 4px);
+    mix-blend-mode: overlay;
+    clip-path: inherit;
+  }
+  .shirt-shadow {
+    position: absolute; inset: 0; pointer-events: none; z-index: 4;
+    background: radial-gradient(ellipse at 50% 0%, rgba(0,0,0,0.3) 0%, transparent 70%);
+    mix-blend-mode: multiply;
+    clip-path: inherit;
+  }
+
+  /* === CONTROLS === */
+  .controls {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(14px);
+    padding: 12px 20px;
+    border-radius: 36px;
+    border: 1px solid rgba(255,255,255,0.06);
+    z-index: 100;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .controls label {
+    color: #aaa;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .controls input[type="color"] {
+    width: 30px; height: 30px;
+    border: 2px solid #444;
+    border-radius: 50%;
+    cursor: pointer;
+    background: none;
+    padding: 2px;
+  }
+  .controls input[type="range"] {
+    width: 80px;
+    accent-color: #E1AD01;
+  }
+  .controls .val {
+    color: #fff;
+    font-size: 12px;
+    min-width: 28px;
+    text-align: center;
+  }
+  .controls button {
+    background: #E1AD01;
+    border: none;
+    color: #1a1a1a;
+    font-weight: 700;
+    padding: 7px 18px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: .15s;
+  }
+  .controls button:hover { background: #f0c030; transform: scale(1.04); }
+
+  @keyframes scrollLeft {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  @keyframes scrollRight {
+    0% { transform: translateX(-50%); }
+    100% { transform: translateX(0); }
+  }
+
+  .badge {
+    position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+    color: #777; font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+    padding: 6px 18px; border-radius: 30px; z-index: 100;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .badge strong { color: #E1AD01; }
+</style>
+</head>
+<body>
+
+<div class="badge">Love Ritual × <strong>Kiwiana Tee</strong> · Prototype</div>
+
+<div class="stage" id="stage">
+  <div class="shirt-wrap">
+    <div class="shirt-body" id="shirtBody">
+      <div class="print-area" id="printArea">
+        <div class="print-inner" id="marqueeContainer">
+          <!-- populates with kiwiana rows -->
+        </div>
+        <div class="print-border">
+          <svg viewBox="0 0 400 220" preserveAspectRatio="none">
+            <path class="koru" d="M0 0 L400 0 L400 220 L0 220 Z" stroke-width="1.5" opacity="0.25"/>
+            <path class="koru" d="M8 8 L392 8 L392 212 L8 212 Z" stroke-width="1" opacity="0.2"/>
+            <!-- koru spirals corners -->
+            <path class="koru" d="M14 14 A8 8 0 1 1 14 22 A6 6 0 1 0 14 14" stroke-width="1.2" opacity="0.4"/>
+            <path class="koru" d="M386 14 A8 8 0 1 0 386 22 A6 6 0 1 1 386 14" stroke-width="1.2" opacity="0.4"/>
+            <path class="koru" d="M14 206 A8 8 0 1 1 14 214 A6 6 0 1 0 14 206" stroke-width="1.2" opacity="0.4"/>
+            <path class="koru" d="M386 206 A8 8 0 1 0 386 214 A6 6 0 1 1 386 206" stroke-width="1.2" opacity="0.4"/>
+          </svg>
+        </div>
+        <div class="print-noise"></div>
+        <div class="print-scanlines"></div>
+        <img class="print-logo" id="printLogo" src="assets/logo1recut.png" alt="Love Ritual" />
+      </div>
+      <div class="fabric-overlay"></div>
+      <div class="shirt-shadow"></div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <label>Shirt <input type="color" id="shirtColor" value="#222222" /></label>
+  <label>Print <input type="color" id="printColor" value="#E1AD01" /></label>
+  <label>
+    Scale
+    <input type="range" id="sizeSlider" min="40" max="90" value="64" />
+    <span class="val" id="sizeVal">64%</span>
+  </label>
+  <button id="screenshotBtn">📸 Preview</button>
+</div>
+
+<script>
+// === KIWIANA ASSETS ===
+const kiwiana = [
+  'assets/4square.png', 'assets/char.png', 'assets/deep throat.png',
+  'assets/footy.png', 'assets/kiwi.png', 'assets/kiwif.png',
+  'assets/LR beer.png', 'assets/bumble.png', 'assets/colonizer.png',
+  'assets/fishnchips.png', 'assets/maori flag.png', 'assets/dollarbag-v2.png',
+  'assets/warrior.png', 'assets/beehive.png', 'assets/kete2.png',
+  'assets/pav.png', 'assets/powerlines.png', 'assets/sheepdag.png',
+  'assets/spottingknives.png', 'assets/treatymusket.png', 'assets/ashtray.png',
+  'assets/kereru.png', 'assets/shed.png',
+  'assets/gummies.png', 'assets/punga.png', 'assets/thingee.png',
+  'assets/chillybin trimmed.png', 'assets/biggest mouth drink.png',
+  'assets/fence upscale.png', 'assets/meatpieupscale.png',
+  'assets/pink jandle upscale.png', 'assets/sauce upscale.png',
+  'assets/swandri trim.png', 'assets/weta trim.png', 'assets/kina 4x scale.png',
+];
+const logos = [
+  'assets/logo1.png', 'assets/logo2.png', 'assets/logo3.png',
+  'assets/logo4.png', 'assets/logo5.png', 'assets/LR-beer.png',
+  'assets/logo1recut.png', 'assets/love ritual logo 6.png'
+];
+
+const allAssets = [];
+const ratio = kiwiana.length / logos.length;
+let logoIdx = 0;
+for (let i = 0; i < kiwiana.length; i++) {
+  allAssets.push(kiwiana[i]);
+  const targetPos = Math.round((logoIdx + 1) * ratio);
+  if (logoIdx < logos.length && i + 1 >= targetPos) {
+    allAssets.push(logos[logoIdx]);
+    logoIdx++;
+  }
+}
+
+// === BUILD PRINT MARQUEE ===
+const container = document.getElementById('marqueeContainer');
+const ROW_COUNT = 5;
+
+function buildMarquee() {
+  container.innerHTML = '';
+  for (let r = 0; r < ROW_COUNT; r++) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const track = document.createElement('div');
+    track.className = 'track';
+    track.style.setProperty('--speed', `${5 + Math.random() * 3}s`);
+    for (let copy = 0; copy < 2; copy++) {
+      allAssets.forEach(src => {
+        const img = document.createElement('img');
+        img.src = src; img.alt = '';
+        img.draggable = false;
+        img.loading = 'lazy';
+        track.appendChild(img);
+      });
+    }
+    row.appendChild(track);
+    container.appendChild(row);
+  }
+}
+buildMarquee();
+
+// === CONTROLS ===
+document.getElementById('shirtColor').addEventListener('input', e => {
+  document.getElementById('shirtBody').style.background = e.target.value;
+});
+
+document.getElementById('printColor').addEventListener('input', e => {
+  document.querySelector('.print-inner').style.background = e.target.value;
+});
+
+document.getElementById('sizeSlider').addEventListener('input', e => {
+  const v = e.target.value;
+  document.getElementById('sizeVal').textContent = v + '%';
+  const area = document.querySelector('.print-area');
+  area.style.width = v + '%';
+  area.style.left = ((100 - parseInt(v)) / 2) + '%';
+});
+
+document.getElementById('screenshotBtn').addEventListener('click', () => {
+  const btn = document.getElementById('screenshotBtn');
+  btn.textContent = '⏳';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = '📸 Preview';
+    btn.disabled = false;
+    alert('Prototype ready! Take a screenshot or right-click → "Save As" to save the tee design.');
+  }, 400);
+});
+</script>
+</body>
+</html>

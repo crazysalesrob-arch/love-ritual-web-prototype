@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kiwiana Border Loop</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+  body { display: flex; align-items: center; justify-content: center; }
+  #frame {
+    width: 100vw; height: 56.25vw;
+    max-height: 100vh; max-width: 177.78vh;
+    position: relative; overflow: hidden;
+  }
+  canvas { display: block; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <canvas id="c"></canvas>
+</div>
+<script>
+const ASSETS = [
+  'assets/4square.png','assets/chair.png','assets/kiwi.png','assets/kiwif.png',
+  'assets/pav.png','assets/LR beer.png','assets/bumble.png','assets/colonizer.png',
+  'assets/fishnchips.png','assets/maori flag.png','assets/warrior.png','assets/beehive.png',
+  'assets/kete2.png','assets/powerlines.png','assets/sheepdag.png','assets/spottingknives.png',
+  'assets/treatymusket.png','assets/ashtray.png','assets/kereru.png','assets/shed.png',
+  'assets/gummies.png','assets/punga.png','assets/thingee.png','assets/dollarbag-v2.png',
+  'assets/sauce upscale.png','assets/nzflag.png','assets/zip zag 2.png','assets/vape.png',
+  'assets/meatpieupscale.png','assets/pink jandle upscale.png',
+  'assets/swandri trim.png','assets/weta trim.png','assets/biggest mouth drink.png',
+  'assets/logo1recut.png','assets/logo2.png','assets/logo3.png','assets/logo4.png',
+  'assets/logo5.png','assets/LR-beer.png','assets/love ritual logo 6.png',
+];
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, BW, TL, RL;
+const ITEM_SIZE = 76;
+const GAP = 8;
+
+function calcItems() {
+  BW = 38;
+  TL = W - BW * 2;
+  RL = H - BW * 2;
+}
+
+const images = {};
+let loaded = 0;
+let allLoaded = false;
+ASSETS.forEach(src => {
+  const img = new Image();
+  img.onload = () => { loaded++; if (loaded >= ASSETS.length) allLoaded = true; };
+  img.onerror = () => { loaded++; if (loaded >= ASSETS.length) allLoaded = true; };
+  img.src = src + '?v=' + Date.now();
+  images[src] = img;
+});
+
+let tick = 0;
+const TICK_INTERVAL = 1000;
+let lastTick = 0;
+
+function resize() {
+  const rect = document.getElementById('frame').getBoundingClientRect();
+  W = canvas.width = rect.width;
+  H = canvas.height = rect.height;
+  calcItems();
+}
+window.addEventListener('resize', resize);
+
+function render(time) {
+  if (!allLoaded) { requestAnimationFrame(render); return; }
+  
+  // Clear to transparent
+  ctx.clearRect(0, 0, W, H);
+  
+  if (time - lastTick > TICK_INTERVAL) { tick = (tick + 1) % ASSETS.length; lastTick = time; }
+  
+  const step = ITEM_SIZE + GAP;
+  const topN = Math.floor(TL / step);
+  const sideN = Math.floor(RL / step);
+  
+  // Draw yellow background only where items will be (the border strip)
+  ctx.fillStyle = '#E1AD01';
+  
+  // Top strip
+  ctx.fillRect(0, 0, W, BW + ITEM_SIZE/2);
+  // Bottom strip
+  ctx.fillRect(0, H - BW - ITEM_SIZE/2, W, BW + ITEM_SIZE/2);
+  // Left strip
+  ctx.fillRect(0, 0, BW + ITEM_SIZE/2, H);
+  // Right strip
+  ctx.fillRect(W - BW - ITEM_SIZE/2, 0, BW + ITEM_SIZE/2, H);
+  
+  // Top edge: left to right
+  for (let i = 0; i < topN; i++) {
+    const t = (i + 0.5) / topN;
+    const x = BW + t * TL;
+    const y = BW;
+    drawItem(ASSETS[(tick + i) % ASSETS.length], x, y);
+  }
+  
+  // Right edge: top to bottom
+  for (let i = 0; i < sideN; i++) {
+    const t = (i + 0.5) / sideN;
+    const x = W - BW;
+    const y = BW + t * RL;
+    drawItem(ASSETS[(tick + topN + i) % ASSETS.length], x, y);
+  }
+  
+  // Bottom edge: right to left
+  for (let i = 0; i < topN; i++) {
+    const t = (i + 0.5) / topN;
+    const x = W - BW - t * TL;
+    const y = H - BW;
+    drawItem(ASSETS[(tick + topN*2 + sideN + i) % ASSETS.length], x, y);
+  }
+  
+  // Left edge: bottom to top
+  for (let i = 0; i < sideN; i++) {
+    const t = (i + 0.5) / sideN;
+    const x = BW;
+    const y = H - BW - t * RL;
+    drawItem(ASSETS[(tick + topN*2 + sideN*2 + i) % ASSETS.length], x, y);
+  }
+  
+  requestAnimationFrame(render);
+}
+
+function drawItem(src, x, y) {
+  const img = images[src];
+  if (!img || !img.complete || img.naturalWidth === 0) return;
+  const aspect = img.width / img.height;
+  const w = aspect > 1 ? ITEM_SIZE : ITEM_SIZE * aspect;
+  const h = aspect > 1 ? ITEM_SIZE / aspect : ITEM_SIZE;
+  ctx.drawImage(img, x - w/2, y - h/2, w, h);
+}
+
+resize();
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kiwiana Lyric Bounce</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+  body { display: flex; align-items: center; justify-content: center; }
+  #frame {
+    width: 100vw; height: 56.25vw;
+    max-height: 100vh; max-width: 177.78vh;
+    position: relative; overflow: hidden;
+  }
+  canvas { display: block; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <canvas id="c"></canvas>
+</div>
+<script>
+const COLORS = ['#9B59B6', '#F1C40F', '#2ECC71', '#FFB6C1', '#3498DB'];
+
+const PHRASES = [
+  ["KIWIS","LOVE","HOT","DOGS"],
+  ["RUGBY","BALLS","WAGGING","SCHOOL"],
+  ["STEAK","AND","CHEESE"],
+  ["ALIEN","CONSPIRACIES"],
+  ["WINZ","PAYMENTS","LEG","CHAFFING"],
+  ["COW","PATS","FANCY","HATS"],
+  ["THINGIS","EYE","TREATY","RIGHTS"],
+  ["BUZZY","BEES","HOMIE","GS"],
+  ["GUMBOOTS","STOLEN","SHOES"],
+  ["KAKAPO","THANK","YOU","BRO"],
+  ["YEAH","NAH","CHUR","CUZ"],
+  ["WE","SOME","KIWI","MOTHERF***ERS"],
+  [],
+  ["ROAD","TRIPS","FISH","CHIPS"],
+  ["DOOM","SCROLLING","HAND","HOLDING"],
+  ["SWANNDRIS","BONFIRES"],
+  ["CHILLY","BINS","CHICKEN","WINGS"],
+  ["JANDALS","HANDLES"],
+  ["SHEEP","DAGS","DOLLAR","BAGS"],
+  ["UP","THE","WAHS"],
+  ["STOLE","MY","CAR"],
+  ["TINNIE","HOUSE","FANCY","BLOUSE"],
+  ["ROAD","KILL","ROAD","CONE"],
+  ["MANUS","AND","PARU","THINGS"],
+  ["NEK","MINUTE","STEAK","DINNERS"],
+  ["RAM","RAIDS","SUNNY","DAYS"],
+  ["CHEEKY","DURRY","MARIJUANA"],
+  ["MAORI","HAKA"],
+  ["WE","SOME","KIWI","MOTHERF***ERS"]
+];
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  const rect = document.getElementById('frame').getBoundingClientRect();
+  W = canvas.width = rect.width;
+  H = canvas.height = rect.height;
+}
+window.addEventListener('resize', resize);
+
+const kiwifImg = new Image();
+kiwifImg.src = 'assets/kiwif.png' + '?v=' + Date.now();
+
+const BOUNCE_FRAMES = 6;   // frames bouncing on a word
+const ARC_FRAMES = 6;      // frames arcing to the next word
+const FRAMES_PER_WORD = BOUNCE_FRAMES + ARC_FRAMES;
+
+function getWordPositions(words, fontSize) {
+  ctx.font = `bold ${fontSize}px Arial Black, Impact, Arial, sans-serif`;
+  const wordGap = fontSize * 0.9;
+  const gaps = words.map(w => ctx.measureText(w).width + wordGap);
+  const totalW = gaps.reduce((a, b) => a + b, 0) - wordGap;
+  let startX = (W - totalW) / 2;
+  const positions = [];
+  for (let i = 0; i < words.length; i++) {
+    const w = ctx.measureText(words[i]).width;
+    positions.push({ x: startX + w / 2, w: w });
+    startX += w + wordGap;
+  }
+  return positions;
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function renderPhrase(phraseIdx, totalFrame) {
+  ctx.clearRect(0, 0, W, H);
+  
+  const words = PHRASES[phraseIdx];
+  if (!words || words.length === 0) return;
+  
+  const fontSize = Math.min(W * 0.035, 44);
+  const baseY = H - 120;
+  
+  ctx.font = `bold ${fontSize}px Arial Black, Impact, Arial, sans-serif`;
+  ctx.textBaseline = 'bottom';
+  ctx.textAlign = 'center';
+  
+  const positions = getWordPositions(words, fontSize);
+  
+  // Draw all words
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    let letterX = positions[i].x - positions[i].w / 2;
+    for (let j = 0; j < word.length; j++) {
+      const letter = word[j];
+      const color = COLORS[(phraseIdx * 4 + i + j) % COLORS.length];
+      const lw = ctx.measureText(letter).width;
+      
+      ctx.save();
+      ctx.translate(letterX + lw/2, baseY);
+      ctx.rotate(Math.sin(j * 0.4 + i * 0.6) * 0.03);
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 3;
+      ctx.strokeText(letter, 0, 0);
+      ctx.fillStyle = color;
+      ctx.fillText(letter, 0, 0);
+      ctx.restore();
+      letterX += lw;
+    }
+  }
+  
+  // Draw kiwifruit with jump animation
+  // Determine which word we're on and what phase
+  const wordIdx = Math.min(Math.floor(totalFrame / FRAMES_PER_WORD), words.length - 1);
+  const frameInWord = totalFrame - wordIdx * FRAMES_PER_WORD;
+  const isLastWord = (wordIdx >= words.length - 1);
+  
+  if (kiwifImg.complete && kiwifImg.naturalWidth > 0) {
+    const kiwiSize = fontSize * 2.5; // 2.5x bigger
+    const aspect = kiwifImg.width / kiwifImg.height;
+    const kw = aspect > 1 ? kiwiSize : kiwiSize * aspect;
+    const kh = aspect > 1 ? kiwiSize / aspect : kiwiSize;
+    
+    // Current word position
+    const curX = positions[wordIdx].x;
+    const curW = positions[wordIdx].w;
+    
+    if (frameInWord < BOUNCE_FRAMES) {
+      // Bounce on current word (up and back to rest)
+      const bp = frameInWord / BOUNCE_FRAMES;
+      const bounceHeight = fontSize * 0.9; // twice as high
+      const bounceOffset = -Math.sin(bp * Math.PI) * bounceHeight;
+      const kiwiY = baseY - fontSize * 0.5 - kh + bounceOffset;
+      ctx.drawImage(kiwifImg, curX - kw/2, kiwiY, kw, kh);
+    } else if (!isLastWord) {
+      // Arc to next word
+      const arcFrame = frameInWord - BOUNCE_FRAMES;
+      const arcProgress = arcFrame / ARC_FRAMES;
+      const nextX = positions[wordIdx + 1].x;
+      
+      // Smooth step for arc
+      const t = arcProgress;
+      const arcX = lerp(curX, nextX, t);
+      // Arc goes up higher in the middle
+      const arcHeight = Math.sin(t * Math.PI) * (fontSize * 1.2);
+      const kiwiY = baseY - fontSize * 0.5 - kh - arcHeight;
+      
+      ctx.drawImage(kiwifImg, arcX - kw/2, kiwiY, kw, kh);
+    } else {
+      // Last word - just sit above it
+      const kiwiY = baseY - fontSize * 0.5 - kh;
+      ctx.drawImage(kiwifImg, curX - kw/2, kiwiY, kw, kh);
+    }
+  }
+}
+
+window.renderFrame = function(phraseIdx, totalFrame) {
+  renderPhrase(parseInt(phraseIdx), parseInt(totalFrame));
+  return canvas.toDataURL('image/png');
+};
+
+resize();
+</script>
+</body>
+</html>

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Love Ritual · Kiwiana Background</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #E1AD01;
+    font-family: system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .floating-kiwiana-section {
+    position: relative;
+    width: 100vw;
+    min-height: 300vh;
+    background-color: #E1AD01;
+    overflow: hidden;
+  }
+
+  .floating-asset {
+    position: absolute;
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  .hero-content {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #fff;
+    padding: 2rem;
+    pointer-events: none;
+  }
+
+  .hero-content h1 {
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    font-weight: 800;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.2);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .hero-content p {
+    font-size: clamp(1rem, 2.5vw, 1.35rem);
+    opacity: 0.8;
+    margin-top: 1rem;
+    max-width: 520px;
+    text-shadow: 0 1px 10px rgba(0,0,0,0.15);
+  }
+
+  .hero-content .subtitle {
+    margin-top: 0.5rem;
+    font-size: clamp(0.85rem, 1.5vw, 1rem);
+    opacity: 0.55;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .border-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .border-overlay img {
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+  }
+</style>
+</head>
+<body>
+
+<section class="floating-kiwiana-section" id="hero-background">
+</section>
+
+<div class="border-overlay"><img src="assets/kowhaiwhai5.png" alt="" /></div>
+
+<script>
+// ── Asset sources ──
+const kiwianaAssets = [
+  'assets/4square.png',
+  'assets/char.png',
+  'assets/deep throat.png',
+  'assets/footy.png',
+  'assets/kiwi.png',
+  'assets/kiwif.png',
+  'assets/pork royal.png',
+  'assets/puhutukawa.png',
+  'assets/LR beer.png',
+  'assets/bumble.png',
+  'assets/colonizer.png',
+  'assets/fishnchips.png',
+  'assets/maori flag.png',
+  'assets/dollarbag.png',
+  'assets/warrior.png',
+  'assets/beehive.png',
+  'assets/kete2.png',
+  'assets/pav.png',
+  'assets/powerlines.png',
+  'assets/sheepdag.png',
+  'assets/spottingknives.png',
+  'assets/treatymusket.png',
+  'assets/ashtray.png',
+  'assets/kereru.png',
+  'assets/shed.png',
+  'assets/gummies.png',
+  'assets/punga.png',
+  'assets/thingee.png',
+  'assets/chillybin trimmed.png',
+  'assets/fence upscale.png',
+  'assets/meatpieupscale.png',
+  'assets/pink jandle upscale.png',
+  'assets/sauce upscale.png',
+  'assets/swandri trim.png',
+  'assets/weta trim.png',
+  'assets/kina 4x scale.png',
+];
+
+const logoAssets = [
+  'assets/logo1.png',
+  'assets/logo2.png',
+  'assets/logo3.png',
+  'assets/logo4.png',
+  'assets/logo5.png',
+  'assets/LR-beer.png',
+  'assets/logo1recut.png',
+  'assets/love ritual logo 6.png'
+];
+
+const container = document.getElementById('hero-background');
+
+// ── Physics state ──
+const particles = [];
+let physicsStarted = false;
+const W = () => window.innerWidth;
+const H = () => Math.max(window.innerHeight, document.documentElement.scrollHeight);
+const DRAG = 0.995;
+const DRIFT_FORCE = 0.008;
+const BOUNCE = 0.85;
+
+// ── Spawn kiwiana ──
+function spawnAsset(src, sizeRange, isLogo) {
+  const img = document.createElement('img');
+  img.src = src;
+  img.className = 'floating-asset';
+  img.alt = '';
+  container.appendChild(img);
+
+  const [min, max] = sizeRange;
+  const size = Math.floor(Math.random() * (max - min)) + min;
+  img.style.width = size + 'px';
+  img.style.height = 'auto';
+
+  const p = {
+    el: img, w: size, h: size, size: size,
+    x: Math.random() * W(), y: Math.random() * (H() - 100),
+    vx: (Math.random() - 0.5) * 0.5,
+    vy: (Math.random() - 0.5) * 0.5,
+    driftAngle: Math.random() * Math.PI * 2,
+    driftPhase: Math.random() * 1000,
+    isLogo: isLogo,
+    rotPhase: Math.random() * Math.PI * 2,
+    rotSpeed: 0.5 + Math.random() * 0.5,
+  };
+  particles.push(p);
+
+  if (img.complete) onImageLoad(img, p);
+  else img.addEventListener('load', () => onImageLoad(img, p));
+}
+
+let loadedCount = 0;
+function onImageLoad(img, p) {
+  p.h = img.naturalHeight * (p.size / img.naturalWidth);
+  loadedCount++;
+  if (loadedCount === particles.length) startPhysics();
+}
+
+// ── Init ──
+window.addEventListener('DOMContentLoaded', () => {
+  // Exactly one of each unique kiwiana item (24 total: 180px uniform, +40% scaled)
+  kiwianaAssets.forEach(src => {
+    // Deep throat gets 100% larger (360px instead of 180px)
+    const size = src.includes('deep throat') ? [360, 360] : [180, 180];
+    spawnAsset(src, size, false);
+  });
+  // Exactly one of each unique logo (6 total: 180px uniform, same size as kiwiana)
+  logoAssets.forEach(src => {
+    spawnAsset(src, [180, 180], true);
+  });
+
+  window.addEventListener('resize', () => {
+    for (const p of particles) {
+      p.x = Math.min(p.x, W() - p.size);
+      p.y = Math.min(p.y, H() - p.h);
+    }
+  });
+});
+
+// ── Physics loop ──
+function startPhysics() {
+  if (physicsStarted) return;
+  physicsStarted = true;
+  updatePhysics();
+}
+
+function updatePhysics() {
+  const ww = W();
+  const wh = H();
+
+  for (const p of particles) {
+    p.driftAngle += (Math.random() - 0.5) * 0.15;
+    const drift = DRIFT_FORCE * (0.5 + 0.5 * Math.sin(Date.now() * 0.001 + p.driftPhase));
+    p.vx += Math.cos(p.driftAngle) * drift;
+    p.vy += Math.sin(p.driftAngle) * drift;
+
+    p.vx *= DRAG;
+    p.vy *= DRAG;
+
+    const speed = Math.hypot(p.vx, p.vy);
+    if (speed > 2.5) {
+      p.vx = (p.vx / speed) * 2.5;
+      p.vy = (p.vy / speed) * 2.5;
+    }
+
+    p.x += p.vx;
+    p.y += p.vy;
+
+    // Wrap around
+    if (p.x + p.size < 0) p.x = ww;
+    else if (p.x > ww) p.x = -p.size;
+    if (p.y + p.h < 0) p.y = wh;
+    else if (p.y > wh) p.y = -p.h;
+  }
+
+  // ── Collision ──
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const a = particles[i];
+      const b = particles[j];
+
+      const ax = a.x + a.size / 2;
+      const ay = a.y + a.h / 2;
+      const bx = b.x + b.size / 2;
+      const by = b.y + b.h / 2;
+
+      const dx = bx - ax;
+      const dy = by - ay;
+      const dist = Math.hypot(dx, dy);
+      const minDist = (a.size + b.size) / 2 * 0.9;
+
+      if (dist < minDist && dist > 0.001) {
+        const nx = dx / dist;
+        const ny = dy / dist;
+
+        const overlap = (minDist - dist) / 2;
+        a.x -= nx * overlap;
+        a.y -= ny * overlap;
+        b.x += nx * overlap;
+        b.y += ny * overlap;
+
+        const dvx = a.vx - b.vx;
+        const dvy = a.vy - b.vy;
+        const relVel = dvx * nx + dvy * ny;
+
+        if (relVel > 0) {
+          const impulse = relVel * BOUNCE;
+          a.vx -= nx * impulse;
+          a.vy -= ny * impulse;
+          b.vx += nx * impulse;
+          b.vy += ny * impulse;
+        }
+      }
+    }
+  }
+
+  for (const p of particles) {
+    const scale = 1 + Math.sin(Date.now() * 0.0009 * p.rotSpeed * 0.5 + p.rotPhase * 1.5) * 0.21;
+    p.el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0)${p.isLogo ? '' : ` rotate(${Math.sin(Date.now() * 0.0002 * p.rotSpeed + p.rotPhase) * 64}deg)`} scale(${scale})`;
+  }
+
+  requestAnimationFrame(updatePhysics);
+}
+</script>
+</body>
+</html>
